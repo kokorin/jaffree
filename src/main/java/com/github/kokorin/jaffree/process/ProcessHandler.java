@@ -47,6 +47,7 @@ public class ProcessHandler<T> {
     private StdReader<T> stdOutReader = new GobblingStdReader<>();
     private StdReader<T> stdErrReader = new GobblingStdReader<>();
     private List<ProcessHelper> helpers = null;
+    private ProcessListener listener = null;
     private Stopper stopper = null;
     private List<String> arguments = Collections.emptyList();
     private int executorTimeoutMillis = DEFAULT_EXECUTOR_TIMEOUT_MILLIS;
@@ -96,6 +97,17 @@ public class ProcessHandler<T> {
      */
     public synchronized ProcessHandler<T> setHelpers(final List<ProcessHelper> helpers) {
         this.helpers = helpers;
+        return this;
+    }
+
+    /**
+     * Sets a {@link ProcessListener Listener} that gets called when a process gets started or stopped.
+     * 
+     * @param listener the listener
+     * @return this
+     */
+    public synchronized ProcessHandler<T> setProcessListener(final ProcessListener listener) {
+        this.listener =  listener;
         return this;
     }
 
@@ -158,6 +170,9 @@ public class ProcessHandler<T> {
                 if (stopper != null) {
                     stopper.setProcess(process);
                 }
+                if(listener != null) {
+                    listener.onProcessStart(process);
+                }
 
                 return interactWithProcess(process);
             } catch (IOException e) {
@@ -165,6 +180,9 @@ public class ProcessHandler<T> {
                 throw new JaffreeException("Failed to start process.", e);
             } finally {
                 if (process != null) {
+                    if(listener != null) {
+                        listener.onProcessStop(process);
+                    }
                     process.destroy();
                     // Process must be destroyed before closing streams, can't use
                     // try-with-resources, as resources are closing when leaving try block,

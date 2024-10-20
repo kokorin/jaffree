@@ -23,6 +23,7 @@ import com.github.kokorin.jaffree.net.NegotiatingTcpServer;
 import com.github.kokorin.jaffree.process.LoggingStdReader;
 import com.github.kokorin.jaffree.process.ProcessHandler;
 import com.github.kokorin.jaffree.process.ProcessHelper;
+import com.github.kokorin.jaffree.process.ProcessListener;
 import com.github.kokorin.jaffree.process.StdReader;
 import com.github.kokorin.jaffree.process.Stopper;
 import org.slf4j.Logger;
@@ -50,6 +51,7 @@ public class FFmpeg {
     private boolean overwriteOutput;
     private ProgressListener progressListener;
     private OutputListener outputListener;
+    private ProcessListener processListener;
     private String progress;
     //-filter_threads nb_threads (global)
     //-debug_ts (global)
@@ -345,6 +347,17 @@ public class FFmpeg {
     }
 
     /**
+     * Supply a ProcessListener to receive access to the Active Process instance of FFmpeg.
+     * <p>
+     * Providing you self control on how the processes are kept alive or tracked.
+     * Since the commandline doesn't guarantee to listen to shutdown commands.
+     */
+    public FFmpeg setProcessListener(final ProcessListener processListener) {
+        this.processListener = processListener;
+        return this;
+    }
+
+    /**
      * Send program-friendly progress information to url.
      * <p>
      * Progress information is written periodically and at the end of the encoding process. It is
@@ -506,6 +519,7 @@ public class FFmpeg {
                         .setStdErrReader(createStdErrReader(outputListener))
                         .setStdOutReader(createStdOutReader())
                         .setHelpers(helpers)
+                        .setProcessListener(processListener)
                         .setArguments(buildArguments());
         if (executorTimeoutMillis != null) {
             processHandler.setExecutorTimeoutMillis(executorTimeoutMillis);

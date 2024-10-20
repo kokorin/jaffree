@@ -22,6 +22,7 @@ import com.github.kokorin.jaffree.StreamType;
 import com.github.kokorin.jaffree.ffprobe.data.FormatParser;
 import com.github.kokorin.jaffree.ffprobe.data.JsonFormatParser;
 import com.github.kokorin.jaffree.process.ProcessHandler;
+import com.github.kokorin.jaffree.process.ProcessListener;
 import com.github.kokorin.jaffree.process.ProcessHelper;
 import com.github.kokorin.jaffree.process.StdReader;
 
@@ -68,6 +69,7 @@ public class FFprobe {
     private String format;
     private Input input;
 
+    private ProcessListener processListener;
     private FormatParser formatParser = new JsonFormatParser();
 
     private final Path executable;
@@ -473,6 +475,17 @@ public class FFprobe {
     }
 
     /**
+     * Supply a ProcessListener to receive access to the Active Process instance of FFprobe.
+     * <p>
+     * Providing you self control on how the processes are kept alive or tracked.
+     * Since the commandline doesn't guarantee to listen to shutdown commands.
+     */
+    public FFprobe setProcessListener(final ProcessListener processListener) {
+        this.processListener = processListener;
+        return this;
+    }
+
+    /**
      * Sets ffprobe output format parser (and corresponding output format).
      * <p>
      * {@link JsonFormatParser} is used by default. It's possible to provide custom implementation.
@@ -545,6 +558,7 @@ public class FFprobe {
                 .setStdOutReader(createStdOutReader(formatParser))
                 .setStdErrReader(createStdErrReader())
                 .setHelpers(helpers)
+                .setProcessListener(processListener)
                 .setArguments(buildArguments())
                 .execute();
     }
