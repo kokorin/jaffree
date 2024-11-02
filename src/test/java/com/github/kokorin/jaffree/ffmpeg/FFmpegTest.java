@@ -9,6 +9,7 @@ import com.github.kokorin.jaffree.ffprobe.FFprobe;
 import com.github.kokorin.jaffree.ffprobe.FFprobeResult;
 import com.github.kokorin.jaffree.ffprobe.Stream;
 import com.github.kokorin.jaffree.process.ProcessHelper;
+import com.github.kokorin.jaffree.process.ProcessListener;
 import com.github.kokorin.jaffree.process.JaffreeAbnormalExitException;
 import org.hamcrest.core.AllOf;
 import org.hamcrest.core.StringContains;
@@ -29,10 +30,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -55,7 +59,46 @@ public class FFmpegTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
+    
+    @Test
+    public void testProcessTracking() throws Exception {
+    	AtomicLong started = new AtomicLong();
+    	AtomicLong stopped = new AtomicLong();
+    	ProcessListener listener = new ProcessListener() {
+			@Override
+			public void onStart(Process process) { started.getAndAdd(1); }
+			@Override
+			public void onStop(Process process) { stopped.getAndAdd(1); }
+    	};
+    	
+        Path tempDir = Files.createTempDirectory("jaffree");
+        Path outputPath = tempDir.resolve("test.mkv");
+        
+        FFmpegResult result = FFmpeg.atPath(Config.FFMPEG_BIN)
+                .addInput(UrlInput.fromPath(Artifacts.VIDEO_FLV))
+                .addOutput(UrlOutput.toPath(outputPath))
+                .setProcessListener(listener)
+                .execute();
 
+        Assert.assertNotNull(result);
+        assertTrue("Process was never started", started.get() > 0);
+        assertTrue("Process was never stopped", stopped.get() > 0);
+
+        outputPath = tempDir.resolve("test.flv");
+        started.set(0L);
+        stopped.set(0L);
+
+        result = FFmpeg.atPath(Config.FFMPEG_BIN)
+                .addInput(UrlInput.fromPath(Artifacts.SMALL_MP4))
+                .addOutput(UrlOutput.toPath(outputPath))
+                .setProcessListener(listener)
+                .execute();
+
+        Assert.assertNotNull(result);
+        assertTrue("Process was never started", started.get() > 0);
+        assertTrue("Process was never stopped", stopped.get() > 0);
+    }
+    
     @Test
     public void testSimpleCopy() throws Exception {
         Path tempDir = Files.createTempDirectory("jaffree");

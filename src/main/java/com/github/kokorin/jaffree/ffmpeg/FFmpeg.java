@@ -23,6 +23,7 @@ import com.github.kokorin.jaffree.net.NegotiatingTcpServer;
 import com.github.kokorin.jaffree.process.LoggingStdReader;
 import com.github.kokorin.jaffree.process.ProcessHandler;
 import com.github.kokorin.jaffree.process.ProcessHelper;
+import com.github.kokorin.jaffree.process.ProcessListener;
 import com.github.kokorin.jaffree.process.StdReader;
 import com.github.kokorin.jaffree.process.Stopper;
 import org.slf4j.Logger;
@@ -49,6 +50,7 @@ public class FFmpeg {
     private final List<String> additionalArguments = new ArrayList<>();
     private boolean overwriteOutput;
     private ProgressListener progressListener;
+    private ProcessListener processListener;
     private OutputListener outputListener;
     private String progress;
     //-filter_threads nb_threads (global)
@@ -343,6 +345,20 @@ public class FFmpeg {
         this.outputListener = outputListener;
         return this;
     }
+    
+    /**
+     * Send a Process Listener to receive the Process Instance when FFMpeg is executed
+     * <p>
+     * This can really help when more than basic controls are required and/or you want to keep track of all the ffpmeg instances going around.
+     * Note: Use with Responsibility!
+     * 
+     * @param processListener process listener
+     * @return this
+     */
+    public FFmpeg setProcessListener(final ProcessListener processListener) {
+    	this.processListener = processListener;
+    	return this;
+    }
 
     /**
      * Send program-friendly progress information to url.
@@ -506,6 +522,7 @@ public class FFmpeg {
                         .setStdErrReader(createStdErrReader(outputListener))
                         .setStdOutReader(createStdOutReader())
                         .setHelpers(helpers)
+                        .setProcessListener(processListener)
                         .setArguments(buildArguments());
         if (executorTimeoutMillis != null) {
             processHandler.setExecutorTimeoutMillis(executorTimeoutMillis);

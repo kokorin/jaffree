@@ -10,6 +10,8 @@ import com.github.kokorin.jaffree.ffprobe.data.FlatFormatParser;
 import com.github.kokorin.jaffree.ffprobe.data.FormatParser;
 import com.github.kokorin.jaffree.ffprobe.data.JsonFormatParser;
 import com.github.kokorin.jaffree.process.JaffreeAbnormalExitException;
+import com.github.kokorin.jaffree.process.ProcessListener;
+
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -28,6 +30,7 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsCollectionContaining.hasItems;
@@ -54,7 +57,37 @@ public class FFprobeTest {
     }
 
     //private boolean showData;
+    @Test
+    public void testProcessListener() throws Exception {
+    	AtomicLong started = new AtomicLong();
+    	AtomicLong stopped = new AtomicLong();
+    	ProcessListener listener = new ProcessListener() {
+			@Override
+			public void onStart(Process process) { started.getAndAdd(1); }
+			@Override
+			public void onStop(Process process) { stopped.getAndAdd(1); }
+    	};
+    	
+        FFprobeResult result = FFprobe.atPath(Config.FFMPEG_BIN)
+                .setInput(Artifacts.VIDEO_MP4)
+                .setShowData(true)
+                .setShowStreams(true)
+                .setFormatParser(formatParser)
+                .setProcessListener(listener)
+                .execute();
 
+        assertNotNull(result);
+        assertNotNull(result.getStreams());
+        assertFalse(result.getStreams().isEmpty());
+
+        Stream stream = result.getStreams().get(0);
+        assertNotNull(stream.getExtradata());
+        assertEquals(Rational.valueOf(30L), stream.getAvgFrameRate());
+        assertTrue("Process was never started", started.get() > 0);
+        assertTrue("Process was never stopped", stopped.get() > 0);
+    }
+    
+    
     @Test
     public void testShowDataWithShowStreams() throws Exception {
         FFprobeResult result = FFprobe.atPath(Config.FFMPEG_BIN)

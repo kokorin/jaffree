@@ -23,6 +23,7 @@ import com.github.kokorin.jaffree.ffprobe.data.FormatParser;
 import com.github.kokorin.jaffree.ffprobe.data.JsonFormatParser;
 import com.github.kokorin.jaffree.process.ProcessHandler;
 import com.github.kokorin.jaffree.process.ProcessHelper;
+import com.github.kokorin.jaffree.process.ProcessListener;
 import com.github.kokorin.jaffree.process.StdReader;
 
 import java.io.InputStream;
@@ -69,6 +70,7 @@ public class FFprobe {
     private Input input;
 
     private FormatParser formatParser = new JsonFormatParser();
+    private ProcessListener processListener;
 
     private final Path executable;
 
@@ -488,6 +490,20 @@ public class FFprobe {
         this.formatParser = formatParser;
         return this;
     }
+    
+    /**
+     * Send a Process Listener to receive the Process Instance when FFMpeg is executed
+     * <p>
+     * This can really help when more than basic controls are required and/or you want to keep track of all the ffpmeg instances going around.
+     * Note: Use with Responsibility!
+     * 
+     * @param processListener process listener
+     * @return this
+     */
+    public FFprobe setProcessListener(final ProcessListener processListener) {
+    	this.processListener = processListener;
+    	return this;
+    }
 
     /**
      * Sets ffprobe logging level.
@@ -545,6 +561,7 @@ public class FFprobe {
                 .setStdOutReader(createStdOutReader(formatParser))
                 .setStdErrReader(createStdErrReader())
                 .setHelpers(helpers)
+                .setProcessListener(processListener)
                 .setArguments(buildArguments())
                 .execute();
     }
