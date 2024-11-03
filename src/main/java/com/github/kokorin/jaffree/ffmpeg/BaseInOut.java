@@ -20,6 +20,7 @@ package com.github.kokorin.jaffree.ffmpeg;
 import com.github.kokorin.jaffree.StreamType;
 import com.github.kokorin.jaffree.process.ProcessHelper;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -63,7 +64,21 @@ public abstract class BaseInOut<T extends BaseInOut<T>> {
         this.format = format;
         return thisAsT();
     }
-
+    
+    /**
+     * When used as an input option, limit the duration of data read from the
+     * input file.
+     * <p>
+     * When used as an output option, stop writing the output after its
+     * duration reaches duration.
+     *
+     * @param duration duration as Duration instance
+     * @return this
+     */
+    public T setDuration(Duration duration) {
+    	return setDuration(duration.toMillis());
+    }
+    
     /**
      * When used as an input option, limit the duration of data read from the
      * input file.
@@ -96,7 +111,30 @@ public abstract class BaseInOut<T extends BaseInOut<T>> {
         long millis = (long) (duration.doubleValue() * timeUnit.toMillis(1));
         return setDuration(millis);
     }
-
+    
+    
+    /**
+     * When used as an input option, seeks in this input file to position.
+     * <p>
+     * Note that in most formats it is not possible to seek exactly, so ffmpeg
+     * will seek to the closest seek point before position.
+     * When transcoding and -accurate_seek is enabled (the default), this extra
+     * segment between the seek point and position will be decoded and
+     * discarded.
+     * <p>
+     * When doing stream copy or when -noaccurate_seek is used,
+     * it will be preserved.
+     * <p>
+     * When used as an output option (before an output url), decodes but
+     * discards input until the timestamps reach position.
+     *
+     * @param duration position as a Duration instance.
+     * @return this
+     */
+    public T setPosition(Duration duration) {
+    	return setPosition(duration.toMillis());
+    }
+    
     /**
      * When used as an input option, seeks in this input file to position.
      * <p>
@@ -144,6 +182,18 @@ public abstract class BaseInOut<T extends BaseInOut<T>> {
     public T setPosition(final Number position, final TimeUnit unit) {
         long millis = (long) (position.doubleValue() * unit.toMillis(1));
         return setPosition(millis);
+    }
+    
+    /**
+     * Like the {@link #setPosition(long)} (-ss) option but relative to
+     * the "end of file".
+     * That is negative values are earlier in the file, 0 is at EOF.
+     *
+     * @param duration position as a Duration instance, relative to the EOF
+     * @return this
+     */
+    public T setPositionEof(Duration duration) {
+    	return setPositionEof(duration.toMillis());
     }
 
     /**

@@ -29,6 +29,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -199,6 +200,43 @@ public class FFmpegTest {
                 .addInput(UrlInput
                         .fromPath(Artifacts.VIDEO_MP4)
                         .setDuration(1. / 6., TimeUnit.MINUTES)
+                )
+                .setOverwriteOutput(true)
+                .addOutput(UrlOutput
+                        .toPath(outputPath)
+                        .copyAllCodecs())
+                .execute();
+
+        Assert.assertNotNull(result);
+
+        outputDuration = getDuration(outputPath);
+        assertEquals(10.0, outputDuration, 0.1);
+    }
+    
+    @Test
+    public void testDurationInstance() throws Exception {
+        Path tempDir = Files.createTempDirectory("jaffree");
+        Path outputPath = tempDir.resolve(Artifacts.VIDEO_MP4.getFileName());
+
+        FFmpegResult result = FFmpeg.atPath(Config.FFMPEG_BIN)
+                .addInput(UrlInput
+                        .fromPath(Artifacts.VIDEO_MP4)
+                        .setDuration(Duration.ofSeconds(10))
+                )
+                .addOutput(UrlOutput
+                        .toPath(outputPath)
+                        .copyAllCodecs())
+                .execute();
+
+        Assert.assertNotNull(result);
+
+        double outputDuration = getDuration(outputPath);
+        assertEquals(10.0, outputDuration, 0.1);
+
+        result = FFmpeg.atPath(Config.FFMPEG_BIN)
+                .addInput(UrlInput
+                        .fromPath(Artifacts.VIDEO_MP4)
+                        .setDuration(Duration.ofMinutes(1).dividedBy(6))
                 )
                 .setOverwriteOutput(true)
                 .addOutput(UrlOutput
