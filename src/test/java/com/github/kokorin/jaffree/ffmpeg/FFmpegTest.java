@@ -511,6 +511,28 @@ public class FFmpegTest {
     }
 
     @Test
+    public void testDurationPositionNegative() throws Exception {
+        Path tempDir = Files.createTempDirectory("jaffree");
+        Path outputPath = tempDir.resolve(Artifacts.VIDEO_MP4.getFileName());
+
+        FFmpegResult result = FFmpeg.atPath(Config.FFMPEG_BIN)
+                .addInput(UrlInput
+                        .fromPath(Artifacts.VIDEO_MP4)
+                        .setPositionEof(Duration.ofSeconds(-7))
+                )
+                .addOutput(UrlOutput
+                        .toPath(outputPath)
+                        .copyAllCodecs())
+                .execute();
+
+        Assert.assertNotNull(result);
+
+        double outputDuration = getDuration(outputPath);
+
+        assertEquals(7.0, outputDuration, 0.5);
+    }
+    
+    @Test
     public void testPositionNegative() throws Exception {
         Path tempDir = Files.createTempDirectory("jaffree");
         Path outputPath = tempDir.resolve(Artifacts.VIDEO_MP4.getFileName());
@@ -786,6 +808,32 @@ public class FFmpegTest {
                     )
                     .addOutput(
                             UrlOutput.toPath(outputPath)
+                    )
+                    .setLogLevel(LogLevel.INFO)
+                    .execute();
+
+            Assert.assertNotNull(result);
+            Assert.assertNotNull(result.getVideoSize());
+        }
+
+        assertTrue(Files.exists(outputPath));
+        assertTrue(Files.size(outputPath) > 1000);
+    }
+    
+    @Test
+    public void testChannelDurationInputSeek() throws IOException {
+        Path tempDir = Files.createTempDirectory("jaffree");
+        Path outputPath = tempDir.resolve("frame.jpg");
+
+        try (SeekableByteChannel channel = Files.newByteChannel(Artifacts.VIDEO_MP4, READ)) {
+            FFmpegResult result = FFmpeg.atPath(Config.FFMPEG_BIN)
+                    .addInput(
+                            new ChannelInput("testChannelInputSeek.mp4", channel)
+                                    .setPosition(Duration.ofMinutes(1L))
+                    )
+                    .addOutput(
+                            UrlOutput.toPath(outputPath)
+                                    .setFrameCount(StreamType.VIDEO, 1L)
                     )
                     .setLogLevel(LogLevel.INFO)
                     .execute();
